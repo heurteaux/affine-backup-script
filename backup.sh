@@ -37,6 +37,8 @@ fi
 export BORG_REPO
 export BORG_PASSPHRASE
 export BORG_RSH
+export POSTGRES_CONTAINER
+export CONTAINER_RUNTIME
 export FROM_EMAIL
 export FROM_NAME
 export TO_EMAIL
@@ -105,29 +107,38 @@ export BACKUP_TIME
 export PARAGRAPH
 
 # ~~~ Service specific operations ~~~
-# Customize these functions based on your backup needs
+# AFFiNE backup operations
 
 run_pre_backup_operations() {
-    # Add your pre-backup operations here
-    # Examples:
-    # - Stop services for consistent backups
-    # - Create database dumps
-    # - Prepare data for backup
+    info "Stopping AFFiNE service..."
+    if ! systemctl --user stop affine.service; then
+        error "Failed to stop affine.service"
+        return 1
+    fi
     
-    # Example database dump:
-    # docker exec -t myapp_db pg_dumpall --clean --if-exists --username="$DB_USERNAME" > "$UPLOAD_LOCATION"/database-backup/database.sql
+    info "Creating database backup directory..."
+    mkdir -p "$UPLOAD_LOCATION/database-backup"
     
-    : # No-op (remove this line when adding your operations)
+    info "Dumping PostgreSQL database..."
+    if ! $CONTAINER_RUNTIME exec "$POSTGRES_CONTAINER" pg_dump --username affine -v affine > "$UPLOAD_LOCATION/database-backup.sql"; then
+        error "Failed to dump database"
+        systemctl --user start affine.service || true
+        return 1
+    fi
+    
+    info "Database dump completed successfully"
+    return 0
 }
 
 run_post_backup_operations() {
-    # Add your post-backup operations here
-    # Examples:
-    # - Restart services
-    # - Clean up temporary files
-    # - Send additional notifications
+    info "Starting AFFiNE service..."
+    if ! systemctl --user start affine.service; then
+        error "Failed to start affine.service"
+        return 1
+    fi
     
-    : # No-op (remove this line when adding your operations)
+    info "AFFiNE service restarted successfully"
+    return 0
 }
 
 # ~~~ Cleanup trap in case of uncaught error ~~~
