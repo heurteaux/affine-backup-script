@@ -39,6 +39,7 @@ export BORG_PASSPHRASE
 export BORG_RSH
 export POSTGRES_CONTAINER
 export CONTAINER_RUNTIME
+export SYSTEM_USER
 export FROM_EMAIL
 export FROM_NAME
 export TO_EMAIL
@@ -108,6 +109,18 @@ export PARAGRAPH
 
 # ~~~ Service specific operations ~~~
 # AFFiNE backup operations
+
+# Setup environment for system users without login shell
+if [ -n "${SYSTEM_USER:-}" ]; then
+    # Get UID for the system user
+    USER_UID=$(id -u)
+    export XDG_RUNTIME_DIR="/run/user/${USER_UID}"
+    
+    # Verify runtime directory exists
+    if [ ! -d "$XDG_RUNTIME_DIR" ]; then
+        warn "Runtime directory $XDG_RUNTIME_DIR does not exist. User service manager may not be available."
+    fi
+fi
 
 run_pre_backup_operations() {
     info "Stopping AFFiNE service..."
