@@ -1,14 +1,16 @@
-# Generic Backup Script Template
+# AFFiNE Backup Script
 
-A flexible, POSIX-compliant backup script template using BorgBackup with email notifications. Perfect for creating automated backups of any service or data.
+A POSIX-compliant backup script for AFFiNE using BorgBackup with email notifications. Automatically stops the service, dumps the PostgreSQL database, and backs up all data securely.
 
 ## Features
 
+- Automated AFFiNE service management (stop/start)
+- PostgreSQL database dump before backup
 - Secure encrypted backups using BorgBackup
 - Email notifications with detailed logs
 - Automatic pruning with configurable retention policies
-- Pre and post-backup operation hooks
 - HTML email reports
+- Support for both Docker and Podman
 - POSIX compliant
 
 ## Prerequisites
@@ -31,8 +33,8 @@ sudo apt install borgbackup msmtp gettext-base
 ### 1. Clone the repository
 
 ```sh
-git clone https://github.com/heurteaux/generic-backup-script.git
-cd generic-backup-script
+git clone https://github.com/heurteaux/affine-backup-script.git
+cd affine-backup-script
 ```
 
 ### 2. Configure environment variables
@@ -78,36 +80,26 @@ chmod 600 ~/.msmtprc
 borg init --encryption=repokey /path/to/your/repo
 ```
 
-### 5. Customize the script
+### 5. Configure AFFiNE-specific settings
 
-Edit the `run_pre_backup_operations()` and `run_post_backup_operations()` functions in `backup.sh` to add your custom backup logic.
+The script is pre-configured for AFFiNE with the following operations:
 
-**Example for database backup:**
+**Pre-backup operations:**
+- Stops the AFFiNE service using `systemctl --user stop affine.service`
+- Creates a PostgreSQL database dump at `$UPLOAD_LOCATION/database-backup.sql`
+- Uses the container runtime (Docker/Podman) to execute pg_dump
 
-```sh
-run_pre_backup_operations() {
-    # Dump database
-    docker exec -t myapp_db pg_dumpall --clean --if-exists --username="$DB_USERNAME" > "$UPLOAD_LOCATION"/database-backup/database.sql
-}
-```
+**Post-backup operations:**
+- Restarts the AFFiNE service using `systemctl --user start affine.service`
 
-**Example for stopping/starting services:**
-
-```sh
-run_pre_backup_operations() {
-    # Stop service for consistent backup
-    docker compose stop myapp
-}
-
-run_post_backup_operations() {
-    # Restart service
-    docker compose start myapp
-}
-```
+Make sure to set these variables in your `.env` file:
+- `POSTGRES_CONTAINER` - Name of your PostgreSQL container (default: `affine_postgres`)
+- `CONTAINER_RUNTIME` - Container runtime to use: `docker` or `podman` (default: `docker`)
+- `UPLOAD_LOCATION` - Path to your AFFiNE data directory
 
 ### 6. Customize the logo
 
-Replace `logo.png` with your own logo image (or update `LOGO_PATH` and `LOGO_FORMAT` in `.env`).
+Replace `logo.webp` with your own logo image (or update `LOGO_PATH` and `LOGO_FORMAT` in `.env`).
 
 ## Configuration Reference
 
@@ -124,21 +116,23 @@ Replace `logo.png` with your own logo image (or update `LOGO_PATH` and `LOGO_FOR
 | `FROM_EMAIL` | Sender email address | `alerts@example.com` |
 | `FROM_NAME` | Sender display name | `Backup Alerts` |
 | `TO_EMAIL` | Recipient email address | `admin@example.com` |
+| `TO_NAME` | RecipienAFFiNE data directory to backup | `/path/to/affine/data` |
+| `POSTGRES_CONTAINER` | PostgreSQL container name | `affine_postgres` |
+| `CONTAINER_RUNTIME` | Container runtime (docker/podman) | `docker` |
+| `BORG_REPO` | BorgBackup repository URL | `ssh://user@host/~/backups/affine` |
+| `BORG_PASSPHRASE` | Repository encryption passphrase | `secure-password` |
+| `BORG_RSH` | SSH command for remote repos | `ssh -i /path/to/key` |
+| `KEEP_DAILY_BACKUPS` | Number of daily backups to keep | `7` |
+| `KEEP_WEEKLY_BACKUPS` | Number of weekly backups to keep | `4` |
+| `KEEP_MONTHLY_BACKUPS` | Number of monthly backups to keep | `6` |
+| `FROM_EMAIL` | Sender email address | `alerts@example.com` |
+| `FROM_NAME` | Sender display name | `AFFiNE Backup Alerts` |
+| `TO_EMAIL` | Recipient email address | `admin@example.com` |
 | `TO_NAME` | Recipient display name | `Admin` |
-| `PROGRAM_NAME` | Application name for emails | `MyApp` |
-| `LOGO_FORMAT` | Logo image format | `png` |
-| `LOGO_PATH` | Path to logo file | `./logo.png` |
-| `INSTANCE_URL` | Application URL (optional) | `https://app.example.com` |
-
-## Usage
-
-### Manual execution
-
-```sh
-./backup.sh
-```
-
-### Suppress success emails
+| `PROGRAM_NAME` | Application name for emails | `AFFiNE` |
+| `LOGO_FORMAT` | Logo image format | `webp` |
+| `LOGO_PATH` | Path to logo file | `./logo.webp` |
+| `INSTANCE_URL` | AFFiNE instance URL | `https://affine
 
 ```sh
 ./backup.sh --no-success-email
