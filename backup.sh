@@ -111,7 +111,7 @@ export PARAGRAPH
 
 run_pre_backup_operations() {    
     info "Dumping PostgreSQL database..."
-    if ! $CONTAINER_RUNTIME exec "$POSTGRES_CONTAINER" pg_dump --username affine -v affine > "$UPLOAD_LOCATION/database-backup.sql"; then
+    if ! $CONTAINER_RUNTIME exec "$POSTGRES_CONTAINER" pg_dump --username affine affine > "$UPLOAD_LOCATION/database-backup.sql" 2>/dev/null; then
         error "Failed to dump database"
         return 1
     fi
@@ -234,6 +234,7 @@ borg create                         \
     --show-rc                       \
     --compression lz4               \
     --exclude-caches                \
+    --exclude "$UPLOAD_LOCATION/postgres/" \
                                     \
     ::"{hostname}-{now}"            \
     "$UPLOAD_LOCATION"
