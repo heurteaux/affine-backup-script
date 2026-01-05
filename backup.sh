@@ -109,20 +109,10 @@ export PARAGRAPH
 # ~~~ Service specific operations ~~~
 # AFFiNE backup operations
 
-run_pre_backup_operations() {
-    info "Stopping AFFiNE service..."
-    if ! systemctl --user stop affine.service; then
-        error "Failed to stop affine.service"
-        return 1
-    fi
-    
-    info "Creating database backup directory..."
-    mkdir -p "$UPLOAD_LOCATION/database-backup"
-    
+run_pre_backup_operations() {    
     info "Dumping PostgreSQL database..."
     if ! $CONTAINER_RUNTIME exec "$POSTGRES_CONTAINER" pg_dump --username affine -v affine > "$UPLOAD_LOCATION/database-backup.sql"; then
         error "Failed to dump database"
-        systemctl --user start affine.service || true
         return 1
     fi
     
@@ -131,14 +121,7 @@ run_pre_backup_operations() {
 }
 
 run_post_backup_operations() {
-    info "Starting AFFiNE service..."
-    if ! systemctl --user start affine.service; then
-        error "Failed to start affine.service"
-        return 1
-    fi
-    
-    info "AFFiNE service restarted successfully"
-    return 0
+    : # Nothing to do here 
 }
 
 # ~~~ Cleanup trap in case of uncaught error ~~~
